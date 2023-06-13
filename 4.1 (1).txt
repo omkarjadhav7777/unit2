@@ -1,0 +1,668 @@
+4.1 
+create table Student_B4 (
+ roll_no number(10),
+ attendence number(10),
+ status varchar(10)
+ );
+
+insert into student_B4 values (1,76,'');
+1 row created.
+SQL> insert into student_B4 values (2,64,NULL);
+1 row created.
+SQL> insert into student_B4 values (3,89,NULL);
+1 row created.
+SQL> insert into student_B4 values (4,69,NULL);
+1 row created.
+SQL> insert into student_B4 values (5,74,NULL);
+1 row created.
+SQL> update Student_B4 set status = NULL where roll_no = 1;
+
+declare 
+mroll number(10);
+matt number(10);
+
+begin 
+mroll:=&roll_number;
+
+select attendence into matt from student_b4 where mroll=roll_no;
+if matt<75 then
+dbms_output.put_line('Term not granted');
+update student_b4 set status = 'D' where roll_no=mroll;
+else 
+dbms_output.put_line('Term granted');
+update student_b4 set status = 'ND' where roll_no=mroll;
+end if;
+exception
+when no_data_found then
+dbms_output.put_line(mroll||' not found');
+end;
+
+4.2
+
+create table Acc_mastr(
+ acc_no number(10),
+ balance number(10)
+ );
+
+declare
+macc number(10);
+mbal number(10);
+withd number(10);
+insufficient_bal exception;
+
+begin
+macc:=&macc;
+withd:=&withdrawal_amount;
+
+select balance into mbal from Acc_mastr where acc_no=macc;
+if mbal>=withd then
+dbms_output.put_line('Withdrawal successful');
+update Acc_mastr set balance = (mbal-withd) where acc_no = macc;
+else
+raise insufficient_bal;
+end if;
+exception
+when insufficient_bal then
+dbms_output.put_line('not sufficient balance to withdraw amount');
+end;
+
+4.3
+
+CREATE TABLE client_master (
+  client_id INT,
+  bal_due DECIMAL(10,2)
+);
+
+declare 
+c_id int;
+b_due decimal(10,2);
+BR exception;
+
+begin
+c_id:= &client_id;
+
+select bal_due into b_due from client_master where c_id=client_id;
+if b_due<0 then  
+raise br;
+else 
+dbms_output.put_line('Business rule not violated');
+end if;
+exception 
+when br then 
+dbms_output.put_line('Business rule violated');
+end;
+/
+
+
+4.4
+create table borrower(
+    roll_no number(10) ,
+    name varchar(10),
+    Date_of_Issue date,
+    name_of_book varchar(10),
+    status varchar(10)
+    );
+
+create table fine(
+    roll_no number(10),
+    Mdate date,
+    amt number(10)
+    );
+
+insert into borrower values (123,'kunal','01-mar-22', 'c++','I');
+insert into borrower values (124,'Abhishek','01-mar-22', 'DSA','I');
+insert into borrower values (125,'Vineet','21-mar-22', 'DBMS','I');
+insert into borrower values (126,'Moin','21-jan-22', 'cpp','I');
+insert into borrower values (127,'Aniket','21-feb-22', 'SE','I');
+insert into borrower values (128,'imad','01-may-23', 'Sb','I');
+insert into borrower values (128,'mad','01-jul-23', 'cb','I');
+
+declare
+mroll number(10);
+bname varchar2(20);
+isdate date;
+curr date;
+ddays int;
+mfine number(10);
+neg_days exception;
+
+begin
+mroll:=&mroll;
+bname:=&bname;
+
+select sysdate into curr from dual;
+select Date_of_Issue into isdate from borrower where mroll=roll_no and bname=name_of_book;
+ddays:=curr-isdate;
+if ddays < 0 then 
+raise neg_days;
+end if;
+if ddays<15 then
+dbms_output.put_line('no fine');
+update borrower set status='R' where mroll=roll_no and bname=name_of_book;
+elsif ddays between 15 and 30 then
+mfine:=5*(ddays-15);
+dbms_output.put_line('fine is: '|| mfine);
+insert into fine values(mroll,curr,mfine);
+update borrower set status='R' where mroll=roll_no and bname=name_of_book;
+else
+mfine:=(50*(ddays-30))+(5*(30-15));
+dbms_output.put_line('fine is: '|| mfine);
+insert into fine values(mroll,curr,mfine);
+update borrower set status='R' where mroll=roll_no and bname=name_of_book;
+end if;
+exception 
+when neg_days then
+dbms_output.put_line('issue date cannot be greater than current date');
+end;
+
+5.1
+
+
+create or replace procedure check_fine( mroll in int, bname in varchar2)
+is
+
+mfine int;
+ddays int;
+
+
+begin
+
+select to_date(current_date ,'DD-MON-YY') - to_date( Date_of_Issue,'DD-MON-YY') into ddays from borrower where mroll= roll_no and bname=name_of_book;
+
+if ddays<15 then
+dbms_output.put_line('no fine');
+update borrower set status='R' where mroll=roll_no and bname=name_of_book;
+elsif ddays between 15 and 30 then
+mfine:=5*(ddays-15);
+dbms_output.put_line('fine is: '|| mfine);
+insert into fine values(mroll,to_date(current_Date,'dd-mon-yy'),mfine);
+update borrower set status='R' where mroll=roll_no and bname=name_of_book;
+else
+mfine:=(50*(ddays-30))+(5*(30-15));
+dbms_output.put_line('fine is: '|| mfine);
+insert into fine values(mroll,to_date(current_Date,'dd-mon-yy'),mfine);
+update borrower set status='R' where mroll=roll_no and bname=name_of_book;
+end if;
+end;
+/
+
+declare
+
+mroll int;
+bname varchar2(10);
+
+begin
+mroll:= &mroll;
+bname :=&bname;
+
+check_fine(mroll,bname);
+end;
+/
+
+
+5.2
+
+create or replace function Active_Details( macc in int , mbranch in varchar2) 
+return varchar2
+ is
+mstatus varchar(10);
+begin 
+select status into mstatus from acct_details where macc = account_no and mbranch=branch_nm;
+
+if mstatus ='active' then
+insert into active_acc_details values (macc,mbranch);
+return 'active';
+else
+return 'Inactive';
+end if;
+end;
+/
+
+declare 
+
+macc int;
+mstatus varchar(10);
+mbranch varchar2(20);
+begin
+
+macc :=&macc;
+mbranch := &mbranch;
+mstatus:=Active_Details(macc,mbranch);
+
+dbms_output.put_line('Account is ' || mstatus);
+end;
+/
+
+5.3
+
+declare
+
+mroll int;
+mname varchar(20);
+mmarks int;
+
+begin 
+mroll:= &mroll;
+mname:= &mname;
+
+select total_marks into mmarks from stud_marks where mroll = roll and mname = name;
+grade(mroll,mname,mmarks);
+
+end;
+/
+
+
+create or replace procedure grade(mroll in int , mname in varchar2, mmarks in int)
+is
+
+mclass varchar(20);
+
+begin 
+if mmarks <=1500 and mmarks>=990 then
+dbms_output.put_line('stud in distinction');
+mclass :='distinction';
+insert into result values(mroll,mname,mclass);
+elsif mmarks between 989 and 900 then
+dbms_output.put_line('stud in first class');
+mclass :='first class';
+insert into result values(mroll,mname,mclass);
+
+elsif mmarks between 899 and 825 then
+dbms_output.put_line('higher second class');
+mclass :='first class';
+insert into result values(mroll,mname,mclass);
+
+else
+dbms_output.put_line('fail');
+end if;
+end;
+/
+ 
+
+6.1
+
+The bank manager has decided to activate all those accounts which were previously marked as
+inactive for performing no transaction in last 365 days. Write a PL/SQ block (using implicit cursor) to update the status of account, display an approximate message based on the no. of rows affected by the
+update.
+
+create table acc_details_B4(
+acc_no int,
+name varchar(10),
+status varchar(10)
+);
+
+insert into acc_details_B4 values(123,'kunal','inactive');
+insert into acc_details_B4 values(124,'Vineet','active');
+insert into acc_details_B4 values(125,'Abhishek','active');
+insert into acc_details_B4 values(126,'Moin','active');
+insert into acc_details_B4 values(127,'Aniket','active');
+insert into acc_details_B4 values(128,'Tanuja','inactive');
+insert into acc_details_B4 values(129,'Pratik','active');
+
+declare
+up_rec int;	
+begin
+update acc_details_B4 set status = 'active' where status='inactive';
+if sql%notfound then
+dbms_output.put_line('NO account updated');
+else
+up_rec:=sql%rowcount;
+dbms_output.put_line('NO. of accounts updated are: '||up_rec);
+end if;
+end;
+/
+
+6.2
+
+Organization has decided to increase the salary of employees by 10% of existing
+salary, who are having salary less than average salary of organization, Whenever such
+salary updates takes place, a record for the same is maintained in the increment_salary
+table.
+EMP (E_no , Salary)
+increment_salary(E_no , Salary)
+
+create table emp_b4(
+E_no int,
+salary int
+);
+
+create table inc_sal(
+Emp_no int,
+sal int
+);
+
+insert into emp_b4 values (1,120000);
+insert into emp_b4 values (2,130000);
+insert into emp_b4 values (3,150000);
+insert into emp_b4 values (4,170000);
+insert into emp_b4 values (5,140000);
+insert into emp_b4 values (6,180000);
+insert into emp_b4 values (7,190000);
+insert into emp_b4 values (8,290000);
+insert into emp_b4 values (9,490000);
+insert into emp_b4 values (10,690000);
+
+declare
+emp_no int;
+emp_sal float;
+up_sal float;`
+
+cursor inc_sala is select E_no,salary from emp_b4 where salary<(select avg(salary) from emp_b4);
+
+begin
+open inc_sala;
+loop
+fetch inc_sala into emp_no,emp_sal;
+exit when inc_sala%notfound;
+up_sal:=emp_sal+(emp_sal/10);
+update emp_b4 set salary=up_sal where emp_no=e_no;
+insert into inc_sal values(emp_no,up_sal);
+
+end loop;
+close inc_sala;
+end;
+
+6.3
+
+Write PL/SQL block using explicit cursor for following requirements:
+College has decided to mark all those students detained (D) who are having attendance less than 75%. Whenever such update takes place, a record for the same is maintained in the D_Stud table. create table stud21(roll number(4), att number(4), status varchar(1)); create table d_stud(roll number(4), att number(4));
+
+create table stud_21(
+roll_no number(10),
+attendence number(10),
+status varchar(10)
+);
+
+create table d_stud(
+roll_no number(10),
+att number(10)
+);
+
+insert into stud_21 values(1,80,NULL);
+insert into stud_21 values(2,65,NULL);
+insert into stud_21 values(3,70,NULL);
+insert into stud_21 values(4,89,NULL);
+insert into stud_21 values(5,90,NULL);
+insert into stud_21 values(6,63,NULL);
+
+declare 
+mroll int;
+matt int;
+
+cursor grade is select roll_no,attendence from stud_21 where attendence < 75;
+begin
+open grade;
+loop
+fetch grade into mroll,matt;
+exit when grade%notfound;
+update stud_21 set status=' D ' where roll_no=mroll;
+insert into d_stud values(mroll,matt);
+end loop;
+close grade;
+end;
+
+6.4
+
+parameterized Cursor
+Write a PL/SQL block of code using parameterized Cursor, that will merge the
+data available in the newly created table N_RollCall with the data available in the
+table O_RollCall. If the data in the first table already exist in the second table then that data should be skipped.
+
+create table O_RollCall(
+roll int,
+name varchar(10)
+);
+create table N_RollCall(
+roll int,
+name varchar(10)
+);
+
+insert into O_RollCall values(2,'vineet');
+insert into O_RollCall values(3,'abhishek');
+insert into O_RollCall values(4,'pratik');
+insert into O_RollCall values(5,'moin');
+insert into O_RollCall values(6,'aniket');
+insert into O_RollCall values(7,'tanuja');
+insert into N_RollCall values(2,'vineet');
+insert into N_RollCall values(5,'pratik');
+
+declare 
+mroll int;
+mname varchar(20);
+temp int;
+
+cursor old is select roll,name from O_RollCall ;
+cursor new(proll int) is select roll from N_RollCall where roll=proll;
+
+begin
+open old;
+loop
+fetch old into mroll,mname;
+exit when old%notfound;
+open new(mroll);
+fetch new into temp;
+if new%notfound then
+insert into N_RollCall values(mroll,mname);
+end if;
+close new;
+end loop;
+close old;
+end;
+
+6.5
+
+parameterized Cursor
+Write the PL/SQL block for following requirements using parameterized Cursor:
+Consider table EMP(e_no, d_no, Salary), department wise average salary should
+be inserted into new table dept_salary(d_no, Avg_salary)
+
+create table empnew
+(
+e_no int,
+d_no int,
+salary float
+);
+
+create table dept_salary(
+d_no int,
+salary float
+);
+
+insert into empnew values(101,401,750000);
+insert into empnew values(102,401,120000);
+insert into empnew values(103,402,500000);
+insert into empnew values(104,403,400000);
+insert into empnew values(105,402,800000);
+insert into empnew values(106,404,50000);
+insert into empnew values(107,405,100000);
+
+declare 
+asal float;
+
+cursor avgsal(pd_no int) is select avg(salary) from empnew where d_no=pd_no;
+
+begin
+for lid in (select distinct d_no from empnew)
+loop
+open avgsal(lid.d_no);
+fetch avgsal into asal;
+close avgsal;
+insert into dept_salary values(lid.d_no,asal);
+end loop;
+end;
+
+6.6
+
+EXPLICIT CURSOR: Cursor for loop
+6. Write PL/SQL block using explicit cursor: Cursor FOR Loop for following
+requirements:
+College has decided to mark all those students detained (D) who are having attendance less than 75%. Whenever such update takes place, a record for the same is maintained in the D_Stud table.
+create table stud21(roll number(4), att number(4), status varchar(1));
+create table d_stud(roll number(4), att number(4));
+
+create table stud21
+(
+roll number(4),
+att number(4),
+status varchar(1)
+);
+
+create table d_stud21
+(
+roll number(4),
+att number(4)
+);
+
+insert into stud21 values(1,89,NULL);
+insert into stud21 values(2,69,NULL);
+insert into stud21 values(3,82,NULL);
+insert into stud21 values(4,74,NULL);
+insert into stud21 values(5,99,NULL);
+insert into stud21 values(6,45,NULL);
+
+declare
+cursor detained is select roll,att from stud21 where att<75;
+begin
+for atten in detained
+loop
+update stud21 set status='D' where atten.roll=roll;
+insert into d_stud21 values(atten.roll,atten.att);
+end loop;
+end;
+
+7.1
+
+Write a update, delete trigger on clientmstr table. The System should keep
+track of the records that ARE BEING updated or deleted. The old value of updated
+or deleted records should be added in audit_trade table. (separate
+implementation using both row and statement triggers)
+
+create table clientmstr(
+ cl_no int,
+ name varchar(20),
+ cl_add varchar(10)
+ );
+
+create table audit_trade(
+ cl_no int,
+ op varchar(20)
+ );
+
+insert into clientmstr values(1,'kunal','AMt');
+insert into clientmstr values(2,'vineet','pune');
+insert into clientmstr values(3,'abhi','paratwada');
+insert into clientmstr values(4,'pratik','mumbai');
+insert into clientmstr values(5,'moin','pune');
+
+
+create or replace trigger t1 after update or delete on clientmstr
+for each row
+
+declare
+op varchar(10);
+
+begin
+if updating then
+op:='updated';
+elsif deleting then
+op:='deleted';
+end if;
+insert into audit_trade values(:old.cl_no,op);
+
+end;
+
+7.2
+
+Write a before trigger for Insert, update event considering following
+requirement: Emp(e_no, e_name, salary)
+I) Trigger action should be initiated when salary is tried to be inserted is less than Rs.
+50,000/-
+II) Trigger action should be initiated when salary is tried to be updated for value less
+than Rs. 50,000/-
+Action should be rejection of update or Insert operation by displaying appropriate
+errormessage. Also the new values expected to be inserted will be stored in new
+table Tracking(e_no, salary).
+
+create table Employees_B4(
+ emp_id number(10),
+ emp_name varchar(10),
+ salary number(10)
+ );
+
+ create table emp_track(
+ emp_id number(10),
+ sal number(10)
+ );
+
+insert into Employees_B4 values (111,'Kunal',120000);
+insert into Employees_B4 values (112,'Vineet',40000);
+insert into Employees_B4 values (113,'Abhishek',50000);
+insert into Employees_B4 values (114,'Pratik',13000);
+insert into Employees_B4 values (115,'Moin',42000);
+insert into Employees_B4 values (116,'Tanuja',32000);
+insert into Employees_B4 values (115,'Aniket',39000);
+
+
+
+create or replace trigger t2 before insert or update on Employees_B4
+for each row
+declare
+mm exception;
+salary int;
+begin
+if :new.salary<50000 then
+raise mm;
+else
+insert into emp_track values(:new.emp_id,:new.salary);
+end if;
+exception 
+when mm then
+dbms_output.put_line('Error');
+end;
+ 
+create or replace trigger t2 before insert or update on Employees_B4
+for each row
+declare
+salary int;
+begin
+if :new.salary<50000 then
+raise_application_error(-20003,'Salary should be greater than 50000')
+end if;
+insert into emp_track values(:new.emp_id,:new.salary);
+end;
+
+7.3
+
+Write a Database trigger for following requirements:
+Employee salary of last three month is stored in the emp_sal table.
+emp_sal(emp_no, sal1,sal2,sal3)
+before inserting salary into emp_sal table, if salary of employee in any of the last three month
+is greater than Rs. 50,000/- then entry of average salary along with emp_no needs to be
+inserted into new table emp_new(emp_no, avg_sal).
+
+
+create table emp_sal(
+ emp_no int primary key,
+ sal1 number(10),
+ sal2 number(10),
+ sal3 number(10)
+ );
+
+ create table emp_new(
+2 emp_no int,
+ avg_sal number(10)
+ );
+
+insert into emp_sal values(1, 10000, 20000, 32000);
+insert into emp_sal values(2, 50000, 55000, 60000);
+insert into emp_sal values(3, 40000, 50000, 70000);
+insert into emp_sal values(4, 60000, 54000, 50000);
+
+
+create or replace trigger t3 before insert on emp_sal
+for each row
+begin
+if ((:new.sal1>50000) or (:new.sal2>50000) or (:new.sal3>50000)) then
+insert into emp_new values(:new.emp_no,(:new.sal1+:new.sal2+:new.sal3)/3);
+end if;
+end;
