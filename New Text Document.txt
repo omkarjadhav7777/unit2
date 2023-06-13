@@ -1,0 +1,394 @@
+declare
+cursor emp_rec is select * from emp;
+sal number(10);
+rec  emp_rec%rowtype;
+begin
+open emp_rec;
+loop
+fetch emp_rec into rec ;
+exit when emp_rec%notfound;
+sal:=rec.salary;
+update emp set salary=sal+501 where E_no=rec.E_no;
+end loop;
+close emp_rec;
+end;
+
+
+---------------------------------------------------------------------------------------
+
+declare
+cursor emp_rec is select * from emp;
+sal number(10);
+begin
+for rec in emp_rec 
+loop
+sal:=rec.salary;
+update emp set salary=sal+34401 where E_no=rec.E_no;
+end loop;
+end;
+
+----------------------------------------------------------------------------------------
+-- Row Trigger Example
+CREATE OR REPLACE TRIGGER employee_row_trigger
+AFTER INSERT OR UPDATE OR DELETE ON emp
+FOR EACH ROW
+BEGIN
+  IF INSERTING THEN
+    DBMS_OUTPUT.PUT_LINE('New employee inserted: ' || :NEW.e_no);
+  ELSIF UPDATING THEN
+    DBMS_OUTPUT.PUT_LINE('Employee updated: ' || :OLD.e_no || ' to ' || :NEW.e_no);
+  ELSIF DELETING THEN
+    DBMS_OUTPUT.PUT_LINE('Employee deleted: ' || :OLD.e_no);
+  END IF;
+END;
+/
+-----------------------------------------------------------------------------------------
+
+CREATE OR REPLACE TRIGGER employee_statement_trigger
+BEFORE INSERT OR UPDATE OR DELETE ON emp
+DECLARE
+  stmt VARCHAR2(100);
+BEGIN
+  stmt := 'Statement executed: ' || SYS_CONTEXT('USERENV', 'CURRENT_SQL');
+  DBMS_OUTPUT.PUT_LINE(stmt);
+END;
+/
+------------------------------------------------------------------------------------------
+--implicit cursor
+
+DECLARE
+  inactive_accounts NUMBER := 0;
+BEGIN
+  UPDATE account1
+  SET status = 'Active'
+  WHERE last_traction <= SYSDATE - 365
+  AND status = 'Inactive';
+
+  IF SQL%FOUND THEN
+    inactive_accounts := SQL%ROWCOUNT;
+
+    IF inactive_accounts = 0 THEN
+      DBMS_OUTPUT.PUT_LINE('No inactive accounts found.');
+    ELSIF inactive_accounts = 1 THEN
+      DBMS_OUTPUT.PUT_LINE('1 inactive account has been activated.');
+    ELSE
+      DBMS_OUTPUT.PUT_LINE(inactive_accounts || ' inactive accounts have been activated.');
+    END IF;
+    
+    COMMIT; -- Optional if you want to commit the changes
+  ELSIF SQL%NOTFOUND THEN
+    DBMS_OUTPUT.PUT_LINE('No rows were affected by the update statement.');
+  END IF;
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
+    ROLLBACK; -- Optional if you want to rollback the changes
+END;
+/
+-------------------------------------------------------------------------------------------------------
+CREATE TABLE Supplier (
+  Sid INT primary key,
+  Sname VARCHAR(50),
+  Address VARCHAR(100));
+
+CREATE TABLE Parts (
+  Pid INT PRIMARY KEY,
+  Pname VARCHAR(50),
+  Color VARCHAR(50));
+
+CREATE TABLE Catalog (
+  Sid INT REFERENCES Supplier(Sid),
+  Pid INT  REFERENCES Parts(Pid),
+  Cost DECIMAL(10, 2)
+);
+
+----------------------------------------------------------------------------------------------------
+ Ques:24 
+  set serveroutput on;
+   declare
+   rows2 Exception ;
+   rows number:=0;
+   begin
+   update customer set salary= salary + 500;
+   rows:=SQL%ROWCOUNT;
+   if rows=0 then
+   dbms_output.put_line('no rows updatated');
+   elsif rows=2 then
+   raise rows2;
+   else
+   dbms_output.put_line('no of rows updated :'|| rows);
+   end if;
+   exception
+   when no_data_found then
+   dbms_output.put_line('no data found');
+   when rows2 then
+   dbms_output.put_line('2 rows exception raised');
+   end;
+   /
+   
+--------------------------------------------------------------------------------------------------
+Ques:23
+
+set serveroutput on;
+create or replace trigger custop
+after update or delete or insert on customer
+for each row
+begin
+if inserting then
+dbms_output.put_line(:new.salary ||' salary is inserted in cust_no='||:new.cust_no);
+elsif updating  then
+dbms_output.put_line(:new.salary - :old.salary || ' is the difference between new and old salary updated for cust_no '|| :new.cust_no );
+elsif deleting then
+dbms_output.put_line(:old.cust_no ||' is deleted the old salary is '|| :old.salary);
+end if;
+end;
+/
+-----------------------------------------------------------------------------------------------------
+Ques:22
+
+ CREATE TABLE account22 (
+       account_no NUMBER,
+        account_name VARCHAR2(100),
+        balance NUMBER(10,2) );
+
+
+
+ CREATE OR REPLACE FUNCTION F_checkAccNO(p_account_no IN NUMBER) RETURN NUMBER IS
+     v_count NUMBER := 0;
+  BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM account22
+    WHERE ACCOUNT_NO = p_account_no;
+    IF v_count > 0 THEN
+       RETURN 1; 
+    ELSE
+       RETURN 0; 
+    END IF;
+   END;
+   /
+
+ DECLARE
+    v_account_no NUMBER := 12345; -- Example account number
+    v_result NUMBER;
+ BEGIN
+   v_result := F_checkAccNO(v_account_no);
+   IF v_result = 1 THEN
+      DBMS_OUTPUT.PUT_LINE('Account number exists.');
+   ELSE
+     DBMS_OUTPUT.PUT_LINE('Account number does not exist.');
+    END IF;
+  END;
+  /
+
+---------------------------------------------------------------------------------
+
+Ques:21
+CREATE TABLE ACCOUNT_MASTER (
+  account_number NUMBER PRIMARY KEY,
+  customer_name VARCHAR2(50),
+  introducer_name VARCHAR2(50)
+);
+
+CREATE TABLE ACCOUNT_MASTER_INFO (
+  account_number NUMBER,
+  customer_name VARCHAR2(50),
+  introducer_name VARCHAR2(50),
+  CONSTRAINT fk_account_number
+    FOREIGN KEY (account_number)
+    REFERENCES ACCOUNT_MASTER (account_number)
+);
+
+INSERT INTO ACCOUNT_MASTER (account_number, customer_name, introducer_name)
+VALUES (1001, 'John Doe', 'Jane Smith');
+
+INSERT INTO ACCOUNT_MASTER (account_number, customer_name, introducer_name)
+VALUES (1002, 'Alice Johnson', 'Bob Thompson');
+
+INSERT INTO ACCOUNT_MASTER (account_number, customer_name, introducer_name)
+VALUES (1003, 'Michael Brown', 'Sarah Davis');
+
+DECLARE
+  v_account_number NUMBER := &enter_account_number; -- Enter the account number here
+  v_customer_name VARCHAR2(50);
+  v_introducer_name VARCHAR2(50);
+BEGIN
+  
+  SELECT customer_name, introducer_name INTO v_customer_name, v_introducer_name
+  FROM ACCOUNT_MASTER
+  WHERE account_number = v_account_number;
+
+  INSERT INTO ACCOUNT_MASTER_INFO (account_number, customer_name, introducer_name)
+  VALUES (v_account_number, v_customer_name, v_introducer_name);
+  DBMS_OUTPUT.PUT_LINE('Account details inserted successfully.');
+
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    DBMS_OUTPUT.PUT_LINE('Account number not found in ACCOUNT_MASTER table.');
+
+END;
+--------------------------------------------------------------------------------------------
+Ques:19
+
+CREATE TABLE ACCOUNT_MASTER (
+  account_number NUMBER PRIMARY KEY,
+  opening_date DATE,
+  last_transaction_date DATE,
+  account_type VARCHAR2(50),
+  account_status VARCHAR2(1)
+);
+
+
+CREATE TABLE INACT_MASTER_TABLE (
+  account_number NUMBER,
+  opening_date DATE,
+  account_type VARCHAR2(50)
+);
+
+INSERT INTO ACCOUNT_MASTER (account_number, opening_date, last_transaction_date, account_type, account_status)
+VALUES (1001, '2022-01-01', '2023-06-01', 'Savings', 'A');
+
+INSERT INTO ACCOUNT_MASTER (account_number, opening_date, last_transaction_date, account_type, account_status)
+VALUES (1002, '2022-03-15', '2023-05-20', 'Checking', 'A');
+
+INSERT INTO ACCOUNT_MASTER (account_number, opening_date, last_transaction_date, account_type, account_status)
+VALUES (1003, '2022-06-10', '2023-06-08', 'Savings', 'I');
+
+INSERT INTO ACCOUNT_MASTER (account_number, opening_date, last_transaction_date, account_type, account_status)
+VALUES (1004, '2022-09-20', '2022-09-20', 'Investment', 'A');
+
+DECLARE
+  CURSOR c_accounts IS
+    SELECT account_number, opening_date, account_type
+    FROM ACCOUNT_MASTER
+    WHERE last_transaction_date < SYSDATE - 365;
+BEGIN
+  FOR account_rec IN c_accounts LOOP
+    
+    UPDATE ACCOUNT_MASTER
+    SET account_status = 'I'
+    WHERE account_number = account_rec.account_number;
+
+    INSERT INTO INACT_MASTER_TABLE (account_number, opening_date, account_type)
+    VALUES (account_rec.account_number, account_rec.opening_date, account_rec.account_type);
+
+    DBMS_OUTPUT.PUT_LINE('Account ' || account_rec.account_number || ' marked as inactive.');
+
+  END LOOP;
+  DBMS_OUTPUT.PUT_LINE('Inactive accounts processing completed.');
+
+EXCEPTION
+  WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Error occurred: ' || SQLERRM);
+END;
+
+
+----------------------------------------------------------------------------------------
+Ques:18
+
+SET SERVEROUTPUT ON;
+DECLARE
+  num NUMBER:=&input_number;
+  rev NUMBER;
+BEGIN
+     rev := 0;
+     WHILE num > 0 LOOP
+     rev := (rev * 10) + MOD(num, 10);
+     num := FLOOR(num / 10);
+     END LOOP;
+     DBMS_OUTPUT.PUT_LINE('Reverse of the number is: ' || rev);
+EXCEPTION
+    WHEN OTHERS THEN
+    DBMS_OUTPUT.PUT_LINE('Error occurred while inverting the number.');
+END;
+/
+
+-------------------------------------------------------------------------------------------------
+Ques:14
+CREATE TABLE Stud_Marks (
+  name VARCHAR2(50),
+  total_marks NUMBER
+);
+
+INSERT INTO Stud_Marks (name, total_marks)
+VALUES ('John', 1400);
+
+INSERT INTO Stud_Marks (name, total_marks)
+VALUES ('Jane', 1000);
+
+INSERT INTO Stud_Marks (name, total_marks)
+VALUES ('Mike', 920);
+
+CREATE TABLE Result (
+  Roll NUMBER,
+  Name VARCHAR2(50),
+  Class VARCHAR2(50)
+);
+
+CREATE OR REPLACE PROCEDURE proc_Grade(
+  p_name IN Stud_Marks.name%TYPE,
+  p_total_marks IN Stud_Marks.total_marks%TYPE
+) IS
+BEGIN
+  IF p_total_marks <= 1500 AND p_total_marks >= 990 THEN
+    INSERT INTO Result (Roll, Name, Class)
+    VALUES (1, p_name, 'Distinction');
+  ELSIF p_total_marks <= 989 AND p_total_marks >= 900 THEN
+    INSERT INTO Result (Roll, Name, Class)
+    VALUES (2, p_name, 'First Class');
+  ELSIF p_total_marks <= 899 AND p_total_marks >= 825 THEN
+    INSERT INTO Result (Roll, Name, Class)
+    VALUES (3, p_name, 'Higher Second Class');
+  END IF;
+END;
+/
+
+-----------------------------------------------------------------------------------
+create or replace function calffine(v_roll in varchar,v_book in varchar) 
+return number
+is
+v_late int;
+v_fine int;
+v_date date;
+ zerofine Exception ;
+begin
+select dateOfissue into v_date from borrower where nameOfbook=V_book and roll_no=v_roll;
+
+v_late:=sysdate - v_date;
+
+if v_late <= 15 then
+raise zerofine;
+elsif v_late >15 and v_late<=30 then
+v_fine := 5*(v_late-15);
+else
+v_fine:= 75 + 50*(v_late-30);
+end if;
+
+if v_fine>0 then
+insert into fine values (v_roll,sysdate,v_fine);
+end if;
+return v_fine;
+exception
+when no_data_found then
+dbms_output.put_line('no data found');
+when zerofine then
+dbms_output.put_line('no fine');
+end;
+/
+
+ declare
+    t_roll varchar(20):='&enter_roll';
+    t_book varchar(20):='&enter_bookname';
+    t_fine int;
+    begin
+     t_fine:=calffine(t_roll,t_book);
+    dbms_output.put_line('fine is'||t_fine);
+    end;
+    /
+----------------------------------------------------------------------------
+ 
+
+
+
+
+
+
