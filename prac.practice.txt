@@ -1,0 +1,393 @@
+system
+Problem statement 6.
+Q 1.Consider table Stud(Roll, Att,Status)
+Write a PL/SQL block for following requirement and handle the exceptions.
+Roll no. of student will be entered by user. Attendance of roll no. entered by user will be checked in
+Stud table. If attendance is less than 75% then display the message “Term not granted” and set the
+status in stud table as “D”. Otherwise display message “Term granted” and set the status in stud
+table as “ND”.
+declare
+mroll number(10);
+matt number(10);
+begin
+mroll:=&mroll;
+select att into matt from stud where roll=mroll;
+if (matt <75) then
+dbms_output.put_line('term not granted');
+update stud set status='D' where roll=mroll;
+else
+dbms_output.put_line('term granted');
+update stud set status='ND' where roll=mroll;
+end if;
+end;
+
+Q 2.The bank manager has decided to activate all those accounts which were previously marked as
+inactive for performing no transaction in last 365 days. Write a PL/SQ block (using implicit cursor)
+to update the status of account, display an approximate message based on the no. of rows affected
+by the update. (Use of %FOUND, %NOTFOUND, %ROWCOUNT)
+
+
+Problem statements 17
+Write Pl/SQL code block that will accept account number from user , check if the users balance is less than
+the minimum balance , only deduct Rs.100/- from the balance .
+
+declare
+macc number(10);
+mbal decimal(10,2);
+transaction_amt decimal(10,2);
+no_sufficiant_balance exception;
+begin
+macc:=&macc;
+transaction_amt:=&transaction_amt;
+select balance into mbal from account where acc_no=macc;
+if(transaction_amt<=mbal) then
+update account set balance=(balance-transaction_amt) where acc_no=macc;
+else 
+raise no_sufficiant_balance;
+end if;
+exception
+ when no_sufficiant_balance then
+dbms_output.put_line('insufficiant balance');
+end;
+
+
+
+Problem statement 13.
+Q 1. . Write a PL/SQL stored Procedure for following requirements and call the procedure in appropriate
+PL/SQL block.
+Borrower(Rollin, Name, DateofIssue, NameofBook, Status)
+Fine(Roll_no,Date,Amt)
+Accept roll_no& name of book from user.
+1. Check the number of days (from date of issue), if days are between 15 to 30 then fine amount
+will be Rs 5per day.
+2. If no. of days>30, per day fine will be Rs 50 per day & for days less than 30, Rs. 5 per day.
+3. After submitting the book, status will change from I to R.
+4. If condition of fine is true, then details will be stored into fine table.
+
+create or replace procedure check_fine(p_roll in int,p_book in varchar(10));
+as
+begin
+v_days_late number(10);
+fine_amt number(10);
+
+select trunc(sysdate)-date_of_issue into v_days_late from borrower;
+where roll=p_roll and name_of_book=p_book;
+
+if (v_days_late<=15) then
+fine_amt:=0;
+elseif(v_days_late <30)
+fine_amt:=(v_days_late-15)*5;
+else
+fine_amt:=(v_days_late-30)*50+75;
+endif;
+
+if (fine_amt>0) then
+insert into fine (roll,date_of_return,amt)
+values(p_roll,sysdate,fine_amt);
+dbms_output.put_line('fine updated');
+
+else
+dbms_output.put_line('not applicable for fine');
+
+endif;
+
+update borrower set status='R' where name_book=p_book and roll=p_roll;
+
+
+Problem statement 11.
+
+Q 1. Write a stored function in PL/SQL for given requirement and use the same in PL/SQL block.
+Account no. and branch name will be accepted from user. The same will be searched in table
+acct_details. If status of account is active then display appropriate message and also store the
+account details in active_acc_details table, otherwise display message on screen “account is
+inactive”.
+
+
+create or replace function check_acc_status
+(
+p_acc_no in int,
+p_branch_name in varchar
+)
+
+return varchar2
+
+IS
+v_acc_status  varchar2(10);
+
+begin
+select status into v_acc_status from acc_details 
+where acc_no=p_acc_no and branch_name=p_branch_name;
+
+if v_acc_status = 'active' then
+insert into active_acc_details(acc_no,branch_name)
+values(p_acc_no,p_branch_name );
+ return 'active account details updated';
+else
+return 'inactive account';
+end if;
+exception 
+when no_data_found then
+return 'account_not_found';
+end;
+
+
+declare
+v_acc_no int;
+v_branch_name varchar(20);
+v_status varchar2(100);
+begin
+v_acc_no:=&acc_no_input;
+v_branch_name:='&branch_name_input';
+v_status:=check_acc_status(p_acc_no=> v_acc_no,p_branch_name=>v_branch_name);
+dbms_output.put_line(v_status);
+end;
+
+
+Problem statement 14.
+Q 1. Write a Stored Procedure namely proc_Grade for the categorization of student. If marks
+scored by students in examination is <=1500 and marks>=990 then student will be placed in
+distinction category if marks scored are between 989 and900 category is first class, if marks 899
+and 825 category is Higher Second Class.
+Write a PL/SQL block for using procedure created with above requirement.
+Stud_Marks(name, total_marks)
+Result(Roll,Name, Class)
+
+create or replace procedure proc_grade 
+(
+ p_roll in number,
+ p_name in varchar2,
+ p_total_marks in number,
+ p_class out varchar2
+)
+as
+begin
+if p_total_marks>=990 and p_total_marks<=1500 then
+ p_class:='distinction';
+
+elsif p_total_marks>=900 and p_total_marks<=989 then
+ p_class:='first_class';
+
+elsif p_total_marks>=825 and p_total_marks<=899 then
+ p_class:='higher second class';
+
+else
+p_class:='fail';
+
+end if;
+end;
+
+declare
+v_class varchar2(50);
+
+begin
+for rec in (select roll,name,total_marks from stud_marks) loop
+proc_grade(rec.roll,rec.name,rec.total_marks,v_class);
+dbms_output.put_line('roll:' || rec.roll || ',name:' ||rec.name ||',class:'||v_class);
+
+end loop;
+end;
+
+
+Problem statement 6.
+Q 1.Consider table Stud(Roll, Att,Status)
+Write a PL/SQL block for following requirement and handle the exceptions.
+Roll no. of student will be entered by user. Attendance of roll no. entered by user will be checked in
+Stud table. If attendance is less than 75% then display the message “Term not granted” and set the
+status in stud table as “D”. Otherwise display message “Term granted” and set the status in stud
+table as “ND”.
+
+Q 2.The bank manager has decided to activate all those accounts which were previously marked as
+inactive for performing no transaction in last 365 days. Write a PL/SQ block (using implicit cursor)
+to update the status of account, display an approximate message based on the no. of rows affected
+by the update. (Use of %FOUND, %NOTFOUND, %ROWCOUNT)
+
+
+declare
+inactive_acc exception;
+pragma exception_INIT(inactive_acc,100);
+cursor c_inactive_acc 
+is
+select acc_no
+from account_prac
+where last_tran_date<sysdate-365;
+
+v_rows_updated number:=0;
+r_inactive_acc number;
+
+begin 
+for r_inactive_acc in c_inactive_acc
+loop
+update account_prac
+set status='active'
+where acc_no=r_inactive_acc.acc_no;
+if sql%notfound then
+raise inactive_acc;
+else
+v_rows_updated:=v_rows_updated+sql%rowcount;
+end if;
+end loop;
+if v_rows_updated=0 then
+dbms_output.put_line('no inactive accounts');
+else
+dbms_output.put_line('accounts updated'|| v_rows_updated);
+end if;
+
+exception 
+when inactive_acc
+then dbms_output.put_line('no accounts-found');
+end;
+
+
+Problem statements 20
+Write PL/SQL code block that will merge the data available in the newly created table
+NEW_BRANCHES with the data available in the table BRANCH_MASTER. If the data in the first
+table already exists in the second table then data should be skipped.(parameterized cursor)
+
+declare
+cursor c_new_roll_call(p_class_id number)
+is
+select roll_no,dt,present
+from n_roll_call
+where class_id = p_class_id;
+v_existing_roll_call o_roll_call%rowtype;
+
+begin 
+for r_new_roll_call in c_new_roll_call(12)
+loop
+
+select *
+into v_existing_roll_call
+from o_roll_call
+where class_id=p_class_id and roll_no=r_new_roll_call.roll_no and dt=r_new_roll_call.dt;
+
+
+if v_existing_roll_call.roll_no is null then
+insert into o_roll_call(class_id,roll_no,dt,present)
+values(p_class_id,r_new_roll_call.roll_no,r_new_roll_call.dt,r_new_roll_call.present);
+end if;
+end loop;
+dbms_output.put_line('roll call merge complete');
+exception
+when others then
+dbms_output.put_line('errore' || sqlerrm);
+end;
+
+
+Q 2.Write a update, delete trigger on clientmstr table. The System should keep track of the records
+that ARE BEING updated or deleted. The old value of updated or deleted records should be added
+in audit_trade table. (separate implementation using both row and statement triggers)
+--rowlwl
+create trigger t1
+after update or delete
+on client_mstr
+for each row
+
+begin
+insert into audit_trade values(:old.id,:old.name,:old.amt);
+end;
+
+--stmntlwl
+create  or replace trigger t1
+after update or delete
+on client_mstr
+declare
+op char(10);
+
+begin
+if updating then
+op:='updated';
+end if;
+insert into audit_trade values(op);
+end;
+
+
+Q 2.Write a before trigger for Insert, update event considering following requirement:
+Emp(e_no, e_name, salary)
+I) Trigger action should be initiated when salary is tried to be inserted is less than Rs. 50,000/-
+II) Trigger action should be initiated when salary is tried to be updated for value less than Rs.
+50,000/-
+Action should be rejection of update or Insert operation by displaying appropriate error message.
+Also the new values expected to be inserted will be stored in new table.
+Tracking(e_no, salary).
+
+
+create or replace trigger emp_trig
+before insert or update on emp
+for each row
+begin
+IF INSERTING THEN
+ IF :new.salary < 50000 THEN
+ raise_application_error(-2001,'salary shld be grtr than 50000');
+ELSE
+insert into tracking(e_no,salary)
+values(:new.e_no,:new.salary);
+END IF; 
+END IF;
+
+IF UPDATING THEN
+ IF :new.salary<50000 THEN
+ raise_application_error(-2001,'salary shld be grtr than 50000');
+ELSE
+insert into tracking(e_no,salary)
+values(:old.e_no,:old.salary);
+END IF; 
+END IF;
+END;
+
+
+
+Write Pl/SQL code block for inverting number 1234 to 4321.
+DECLARE
+num NUMBER := 1234;
+reverse_num NUMBER := 0;
+BEGIN
+WHILE num > 0 LOOP
+reverse_num := (reverse_num * 10) + mod(num,10) ;
+num := floor(num / 10) ;
+END LOOP;
+DBMS_OUTPUT.PUT_LINE('ans:' || reverse_num);
+END;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
